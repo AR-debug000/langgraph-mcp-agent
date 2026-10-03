@@ -1,5 +1,4 @@
-from typing import Literal, TypedDict
-
+from typing import TypedDict
 
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
@@ -7,6 +6,8 @@ from langgraph.graph import END, START, StateGraph
 
 from agents.rag_agent import rag_agent
 from agents.github_agent import github_agent
+from agents.calendar_agent import calendar_agent
+from agents.email_agent import email_agent
 
 
 load_dotenv()
@@ -56,17 +57,20 @@ Available agents:
    - GitHub code
    - GitHub commits
    - GitHub pull requests
+   - GitHub profile information
 
 3. calendar
-   - Google Calendar
+   - Calendar events
    - Meetings
-   - Events
-   - Creating or reading calendar events
+   - Creating calendar events
+   - Listing calendar events
+   - Deleting calendar events
 
 4. email
-   - Writing emails
-   - Drafting emails
    - Sending emails
+   - Listing emails
+   - Searching emails
+   - Email-related operations
 
 Return ONLY one of:
 
@@ -98,7 +102,9 @@ User question:
 
 def rag_node(state: AgentState):
 
-    answer = rag_agent(state["question"])
+    answer = rag_agent(
+        state["question"]
+    )
 
     return {
         "answer": answer
@@ -106,7 +112,7 @@ def rag_node(state: AgentState):
 
 
 # --------------------------------------------------
-# Future Agents
+# GitHub Agent
 # --------------------------------------------------
 
 def github_node(state: AgentState):
@@ -120,17 +126,33 @@ def github_node(state: AgentState):
     }
 
 
+# --------------------------------------------------
+# Calendar Agent
+# --------------------------------------------------
+
 def calendar_node(state: AgentState):
 
+    answer = calendar_agent(
+        state["question"]
+    )
+
     return {
-        "answer": "Calendar Agent will be connected next."
+        "answer": answer
     }
 
 
+# --------------------------------------------------
+# Email Agent
+# --------------------------------------------------
+
 def email_node(state: AgentState):
 
+    answer = email_agent(
+        state["question"]
+    )
+
     return {
-        "answer": "Email Agent will be connected next."
+        "answer": answer
     }
 
 
@@ -176,7 +198,9 @@ builder.add_node(
 )
 
 
+# --------------------------------------------------
 # START → Supervisor
+# --------------------------------------------------
 
 builder.add_edge(
     START,
@@ -184,7 +208,9 @@ builder.add_edge(
 )
 
 
-# Supervisor → selected agent
+# --------------------------------------------------
+# Supervisor → Selected Agent
+# --------------------------------------------------
 
 builder.add_conditional_edges(
     "supervisor",
@@ -198,14 +224,33 @@ builder.add_conditional_edges(
 )
 
 
+# --------------------------------------------------
 # Agents → END
+# --------------------------------------------------
 
-builder.add_edge("rag", END)
-builder.add_edge("github", END)
-builder.add_edge("calendar", END)
-builder.add_edge("email", END)
+builder.add_edge(
+    "rag",
+    END
+)
+
+builder.add_edge(
+    "github",
+    END
+)
+
+builder.add_edge(
+    "calendar",
+    END
+)
+
+builder.add_edge(
+    "email",
+    END
+)
 
 
+# --------------------------------------------------
 # Compile
+# --------------------------------------------------
 
 graph = builder.compile()

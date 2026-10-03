@@ -1,3 +1,4 @@
+import os
 import asyncio
 
 from dotenv import load_dotenv
@@ -29,6 +30,11 @@ async def _github_agent(question: str) -> str:
                     "GITHUB_PERSONAL_ACCESS_TOKEN",
                     "ghcr.io/github/github-mcp-server",
                 ],
+                "env": {
+                    "GITHUB_PERSONAL_ACCESS_TOKEN": os.getenv(
+                        "GITHUB_PERSONAL_ACCESS_TOKEN"
+                    )
+                },
             }
         }
     )
