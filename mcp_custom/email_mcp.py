@@ -1,9 +1,29 @@
+import os
+import base64
+from email.mime.text import MIMEText
+
 from mcp.server.fastmcp import FastMCP
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
 
-mcp = FastMCP("Email MCP")
+
+mcp = FastMCP("Gmail MCP")
+
+TOKEN_FILE = "gmail_token.json"
+SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
 
-emails = []
+def get_gmail_service():
+    creds = Credentials.from_authorized_user_file(
+        TOKEN_FILE,
+        SCOPES
+    )
+
+    return build(
+        "gmail",
+        "v1",
+        credentials=creds
+    )
 
 
 @mcp.tool()
@@ -12,67 +32,34 @@ def send_email(
     subject: str,
     body: str
 ) -> str:
-    """Create and send an email."""
+    """Send a real email through Gmail."""
 
-    email = {
-        "recipient": recipient,
-        "subject": subject,
-        "body": body,
-    }
+    service = get_gmail_service()
 
-    emails.append(email)
+    message = MIMEText(body)
+    message["to"] = recipient
+    message["subject"] = subject
 
-    return (
-        f"Email sent successfully.\n"
-        f"To: {recipient}\n"
-        f"Subject: {subject}\n"
-        f"Body: {body}"
+    raw_message = base64.urlsafe_b64encode(
+        message.as_bytes()
+    ).decode()
+
+    result = (
+        service.users()
+        .messages()
+        .send(
+            userId="me",
+            body={"raw": raw_message}
+        )
+        .execute()
     )
 
-
-@mcp.tool()
-def list_emails() -> str:
-    """List emails handled by the Email MCP server."""
-
-    if not emails:
-        return "No emails found."
-
-    result = []
-
-    for i, email in enumerate(emails, start=1):
-        result.append(
-            f"{i}. To: {email['recipient']} | "
-            f"Subject: {email['subject']} | "
-            f"Body: {email['body']}"
-        )
-
-    return "\n".join(result)
-
-
-@mcp.tool()
-def search_emails(keyword: str) -> str:
-    """Search emails by recipient, subject, or body."""
-
-    keyword = keyword.lower()
-
-    matches = []
-
-    for email in emails:
-        if (
-            keyword in email["recipient"].lower()
-            or keyword in email["subject"].lower()
-            or keyword in email["body"].lower()
-        ):
-            matches.append(
-                f"To: {email['recipient']} | "
-                f"Subject: {email['subject']} | "
-                f"Body: {email['body']}"
-            )
-
-    if not matches:
-        return f"No emails found for '{keyword}'."
-
-    return "\n".join(matches)
+    return (
+        f"Email sent successfully through Gmail.\n"
+        f"To: {recipient}\n"
+        f"Subject: {subject}\n"
+        f"Message ID: {result.get('id')}"
+    )
 
 
 if __name__ == "__main__":

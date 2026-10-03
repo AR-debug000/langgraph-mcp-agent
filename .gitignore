@@ -5,3 +5,5 @@ __pycache__/
 .vscode/
 .DS_Store
 token.json
+gmail_credentials.json
+gmail_token.json
